@@ -4,6 +4,7 @@ import os
 import re
 from datetime import datetime, timezone
 import urllib.parse
+import time
 
 # ── Entity list ───────────────────────────────────────────────────────────────
 ENTITIES = ENTITIES = [
@@ -84,11 +85,20 @@ def run():
     seen = load_seen()
     new_seen = set()
     matches_found = 0
+    # Define the 24-hour threshold (in seconds)
+    SEC_IN_24H = 24 * 60 * 60
+    now_ts = time.time()
 
     with open(LOG_FILE, "a") as log:
         for feed_url in RSS_FEEDS:
             feed = feedparser.parse(feed_url)
             for entry in feed.entries:
+                published_struct = entry.get("published_parsed")
+                if published_struct:
+                    # Convert struct_time to Unix timestamp for comparison
+                    pub_ts = time.mktime(published_struct)
+                    if (now_ts - pub_ts) > SEC_IN_24H:
+                        continue # Skip articles older than 24 hours
                 guid = entry.get("id") or entry.get("link", "")
                 if guid in seen:
                     continue
@@ -99,9 +109,13 @@ def run():
                 combined = f"{title} {summary}"
 
                 matched = find_matches(combined)
+                pub_struct = entry.get("published_parsed")
+                pub_iso = datetime(*pub_struct[:6], tzinfo=timezone.utc).isoformat() if pub_struct else entry.get("published", "")
+                
                 if matched:
                     record = {
                         "ts": datetime.now(timezone.utc).isoformat(),
+                        "published_at": pub_iso,
                         "entities": matched,
                         "title": title,
                         "link": entry.get("link", ""),
