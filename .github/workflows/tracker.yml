@@ -1,0 +1,45 @@
+name: Google News Entity Tracker
+
+on:
+  schedule:
+    # Runs every 3 hours
+    - cron: "0 */3 * * *"
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          # Need full history so we can push back the log + seen file
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install feedparser
+
+      - name: Restore seen GUIDs cache
+        uses: actions/cache@v4
+        with:
+          path: .seen_guids.json
+          key: seen-guids-${{ github.run_id }}
+          restore-keys: |
+            seen-guids-
+
+      - name: Run tracker
+        run: python tracker.py
+
+      - name: Commit updated log
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add match_log.jsonl .seen_guids.json
+          git diff --cached --quiet || git commit -m "chore: news tracker run $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          git push
