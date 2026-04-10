@@ -36,20 +36,12 @@ jobs:
       - name: Run tracker
         run: python tracker.py
 
-      - name: Commit updated log
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git add match_log.jsonl .seen_guids.json
-          
-          if git diff --cached --quiet; then
-            echo "No new matches found. Skipping commit."
-          else
-            git commit -m "chore: news tracker run $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            
-            # Pull with rebase and favor the current runner's changes in case of conflict
-            git pull --rebase -X ours origin main
-            
-            git push origin main
-          fi
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: news tracker run $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          file_pattern: 'match_log.jsonl .seen_guids.json'
+          # This ensures it pulls/rebases correctly if a collision occurs
+          push_options: '--force' 
+          skip_dirty_check: false    
+          branch: main
