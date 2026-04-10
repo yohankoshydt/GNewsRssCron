@@ -3,6 +3,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
+import urllib.parse
 
 # ── Entity list ───────────────────────────────────────────────────────────────
 ENTITIES = ENTITIES = [
@@ -44,12 +45,19 @@ ENTITIES = ENTITIES = [
 ]
 
 # ── Google News RSS feeds to monitor ─────────────────────────────────────────
-RSS_FEEDS = [
+RSS_FEEDS_GENERAL = [
     "https://news.google.com/rss/search?q=Indian+stock+market&hl=en-IN&gl=IN&ceid=IN:en",
     "https://news.google.com/rss/search?q=BSE+NSE+India&hl=en-IN&gl=IN&ceid=IN:en",
     "https://news.google.com/rss/search?q=India+business+earnings&hl=en-IN&gl=IN&ceid=IN:en",
     "https://news.google.com/rss/search?q=India+corporate+news&hl=en-IN&gl=IN&ceid=IN:en",
 ]
+
+RSS_FEEDS = [
+    f"https://news.google.com/rss/search?q={urllib.parse.quote(entity)}&hl=en-IN&gl=IN&ceid=IN:en"
+    for entity in ENTITIES
+]
+
+RSS_FEEDS.extend(RSS_FEEDS_GENERAL)
 
 LOG_FILE = "match_log.jsonl"
 SEEN_FILE = ".seen_guids.json"
